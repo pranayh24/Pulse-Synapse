@@ -1,5 +1,6 @@
 package pr.pulsesynapse.service;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -7,12 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.grpc.server.service.GrpcService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import pr.pulsesynapse.entity.User;
-import pr.pulsesynapse.proto.AuthServiceGrpc;
-import pr.pulsesynapse.proto.RegisterRequest;
-import pr.pulsesynapse.proto.RegisterResponse;
+import pr.pulsesynapse.proto.*;
 import pr.pulsesynapse.repository.UserRepository;
-
-import java.util.UUID;
 
 @GrpcService
 @RequiredArgsConstructor
@@ -51,6 +48,29 @@ public class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
 
         responseObserver.onNext(response);
 
+        responseObserver.onCompleted();
+    }
+
+    public void loginUser(LoginRequest request, StreamObserver<LoginResponse> responseObserver) {
+        log.info("Received login request for username: {}", request.getUsername());
+
+        User user = userRepository.findByUsername(request.getUsername());
+
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            log.warn("Login failed for username: {}", request.getUsername());
+            responseObserver.onError(Status.UNAUTHENTICATED
+                    .withDescription("Invalid username or password")
+                    .asRuntimeException());
+            return;
+        }
+
+        String token = "dummy-token";
+
+        LoginResponse response = LoginResponse.newBuilder()
+                .setAccessToken(token)
+                .build();
+
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 }
