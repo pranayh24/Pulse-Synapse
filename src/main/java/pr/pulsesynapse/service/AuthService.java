@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.grpc.server.service.GrpcService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import pr.pulsesynapse.entity.User;
 import pr.pulsesynapse.proto.AuthServiceGrpc;
 import pr.pulsesynapse.proto.RegisterRequest;
@@ -20,6 +21,7 @@ public class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
     private static Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void registerUser(RegisterRequest request, StreamObserver<RegisterResponse> responseObserver) {
@@ -35,7 +37,7 @@ public class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
 
         User newUser = User.builder()
                 .username(request.getUsername())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .build();
 
