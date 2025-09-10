@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 option java_multiple_files = true;
 
 option java_package = "pr.pulsesynapse.proto";
@@ -7,6 +9,7 @@ option java_package = "pr.pulsesynapse.proto";
 service AuthService {
   rpc RegisterUser(RegisterRequest) returns (RegisterResponse);
   rpc LoginUser(LoginRequest) returns (LoginResponse);
+  rpc GetProfile(google.protobuf.Empty) returns (UserProfile);
 }
 
 message RegisterRequest {
@@ -26,4 +29,10 @@ message LoginRequest {
 
 message LoginResponse {
   string access_token = 1;
+}
+
+message UserProfile {
+  string id = 1;
+  string username = 2;
+  string email = 3;
 }
