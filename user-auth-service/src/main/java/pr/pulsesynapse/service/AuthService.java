@@ -70,7 +70,7 @@ public class AuthService extends AuthServiceGrpc.AuthServiceImplBase {
             return;
         }
 
-        String token = jwtUtil.generateToken(user.getUsername());
+        String token = jwtUtil.generateToken(user);
         log.info("Generated token for username: {}", user.getUsername());
 
         LoginResponse response = LoginResponse.newBuilder()
