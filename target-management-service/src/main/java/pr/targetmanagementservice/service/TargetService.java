@@ -58,17 +58,14 @@ public class TargetService extends TargetServiceGrpc.TargetServiceImplBase {
 
         List<Target> targetList = targetRepository.findAllByUserId(UUID.fromString(userId));
 
-        List<TargetResponse> responseList = new ArrayList<>();
-        for (Target target : targetList) {
-            TargetResponse response = TargetResponse.newBuilder()
-                    .setId(target.getId().toString())
-                    .setName(target.getName())
-                    .setUrl(target.getUrl())
-                    .setCheckIntervalSeconds(target.getCheckIntervalSeconds())
-                    .build();
-
-            responseList.add(response);
-        }
+        List<TargetResponse> responseList = targetList.stream()
+                .map(target -> TargetResponse.newBuilder()
+                        .setId(target.getId().toString())
+                        .setName(target.getName())
+                        .setUrl(target.getUrl())
+                        .setCheckIntervalSeconds(target.getCheckIntervalSeconds())
+                        .build())
+                .toList();
 
         TargetListResponse targetListResponse = TargetListResponse.newBuilder()
                 .addAllTargets(responseList)
@@ -88,6 +85,27 @@ public class TargetService extends TargetServiceGrpc.TargetServiceImplBase {
         targetRepository.deleteByIdAndUserId(UUID.fromString(request.getId()), UUID.fromString(userId));
 
         responseObserver.onNext(Empty.newBuilder().build());
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void getAllTargets(Empty request, StreamObserver<TargetListResponse> responseObserver){
+        List<Target> allTargets = targetRepository.findAll();
+
+        List<TargetResponse> responseList = allTargets.stream()
+                .map(target -> TargetResponse.newBuilder()
+                        .setId(target.getId().toString())
+                        .setName(target.getName())
+                        .setUrl(target.getUrl())
+                        .setCheckIntervalSeconds(target.getCheckIntervalSeconds())
+                        .build())
+                .toList();
+
+        TargetListResponse response = TargetListResponse.newBuilder()
+                .addAllTargets(responseList)
+                .build();
+
+        responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 }

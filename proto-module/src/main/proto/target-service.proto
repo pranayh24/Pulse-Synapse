@@ -10,6 +10,7 @@ service TargetService {
   rpc AddTarget(AddTargetRequest) returns (TargetResponse);
   rpc ListMyTargets(google.protobuf.Empty) returns (TargetListResponse);
   rpc DeleteTarget(DeleteTargetRequest) returns (google.protobuf.Empty);
+  rpc GetAllTargets(google.protobuf.Empty) returns (TargetListResponse);
 }
 
 message AddTargetRequest {
