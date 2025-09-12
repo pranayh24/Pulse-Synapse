@@ -21,6 +21,7 @@
         <module>proto-module</module>
         <module>user-auth-service</module>
         <module>target-management-service</module>
+        <module>scheduler-service</module>
     </modules>
 
     <properties>
