@@ -9,7 +9,7 @@ import java.io.Serializable;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CheckJob implements Serializable {
+public class CheckJob {
     private String targetId;
     private String url;
 }
