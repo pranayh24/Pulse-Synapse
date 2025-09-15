@@ -5,11 +5,13 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.service.GrpcService;
+import org.springframework.transaction.annotation.Transactional;
 import pr.pulsesynapse.proto.*;
 import pr.targetmanagementservice.entity.Target;
 import pr.targetmanagementservice.repository.TargetRepository;
 import pr.targetmanagementservice.security.JwtAuthInterceptor;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +35,7 @@ public class TargetService extends TargetServiceGrpc.TargetServiceImplBase {
                 .name(request.getName())
                 .url(request.getUrl())
                 .checkIntervalSeconds(request.getCheckIntervalSeconds())
+                .nextCheckTime(Instant.now())
                 .build();
 
         Target savedTarget = targetRepository.save(target);
@@ -89,10 +92,19 @@ public class TargetService extends TargetServiceGrpc.TargetServiceImplBase {
     }
 
     @Override
-    public void getAllTargets(Empty request, StreamObserver<TargetListResponse> responseObserver){
-        List<Target> allTargets = targetRepository.findAll();
+    @Transactional
+    public void getDueTargets(Empty request, StreamObserver<TargetListResponse> responseObserver){
+        Instant now = Instant.now();
 
-        List<TargetResponse> responseList = allTargets.stream()
+        List<Target> dueTargets = targetRepository.findAllByNextCheckTimeBefore(now);
+
+        for (Target target : dueTargets) {
+            long interval = target.getCheckIntervalSeconds();
+            target.setNextCheckTime(now.plusSeconds(interval));
+        }
+        targetRepository.saveAll(dueTargets);
+
+        List<TargetResponse> responseList = dueTargets.stream()
                 .map(target -> TargetResponse.newBuilder()
                         .setId(target.getId().toString())
                         .setName(target.getName())

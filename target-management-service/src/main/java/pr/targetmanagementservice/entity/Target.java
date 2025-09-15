@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -29,4 +30,7 @@ public class Target {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
+
+    @Column(name = "next_check_time", nullable = false)
+    private Instant nextCheckTime;
 }
