@@ -24,7 +24,7 @@ public class JwtAuthInterceptor implements ServerInterceptor {
         String methodName = call.getMethodDescriptor().getFullMethodName();
         log.info("Intercepting method "+methodName);
 
-        if (methodName.contains("grpc.reflection") || methodName.contains("grpc.health") || methodName.contains("GetAllTargets")) {
+        if (methodName.contains("grpc.reflection") || methodName.contains("grpc.health") || methodName.contains("GetDueTargets")) {
             log.info("Skipping authentication for method {}", methodName);
             return next.startCall(call, headers);
         }

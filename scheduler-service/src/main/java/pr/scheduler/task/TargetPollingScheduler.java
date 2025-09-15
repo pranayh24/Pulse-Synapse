@@ -26,7 +26,7 @@ public class TargetPollingScheduler {
     public void scheduleTargetChecks() {
         log.info("Scheduler running: Fetching targets to poll...");
         try {
-            TargetListResponse response = targetServiceStub.getAllTargets(Empty.newBuilder().build());
+            TargetListResponse response = targetServiceStub.getDueTargets(Empty.newBuilder().build());
             int targetsCount = response.getTargetsCount();
             log.info("Found {} targets to schedule.",  targetsCount);
 
