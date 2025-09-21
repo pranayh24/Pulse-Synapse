@@ -23,6 +23,7 @@
         <module>target-management-service</module>
         <module>scheduler-service</module>
         <module>polling-worker-service</module>
+        <module>data-ingestion-service</module>
     </modules>
 
     <properties>
