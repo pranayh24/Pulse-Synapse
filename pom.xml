@@ -24,6 +24,7 @@
         <module>scheduler-service</module>
         <module>polling-worker-service</module>
         <module>data-ingestion-service</module>
+        <module>analytics-reporting-service</module>
     </modules>
 
     <properties>
