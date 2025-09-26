@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "pr.pulsesynapse.proto";
+
+service AnalyticsService {
+  rpc GetUptime(UptimeRequest) returns (UptimeResponse);
+  rpc GetLatencyHistory(LatencyHistoryRequest) returns (LatencyHistoryResponse);
+}
+
+message UptimeRequest {
+  string target_id = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+}
+
+message UptimeResponse {
+  string target_id = 1;
+  double uptime_percentage = 2;
+}
+
+message LatencyHistoryRequest {
+  string target_id = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+}
+
+message LatencyDataPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  int64 latency_ms = 2;
+}
+
+message LatencyHistoryResponse {
+  string target_id = 1;
+  repeated LatencyDataPoint history = 2;
+}
+
