@@ -1,0 +1,146 @@
+version: "3.9"
+
+x-common-env: &common-env
+  # Shared secrets/vars injected via Coolify (set these in the Coolify UI)
+  DB_URL: ${DB_URL}
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRATION: ${JWT_EXPIRATION}
+  AUTH_SCHEMA: ${AUTH_SCHEMA:-auth_management}
+  TARGET_SCHEMA: ${TARGET_SCHEMA:-target_management}
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI (optional public)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  influxdb:
+    image: influxdb:2
+    container_name: influxdb
+    ports:
+      - "8086:8086"    # Optional public; for internal only, remove
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_INIT_USERNAME:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_INIT_PASSWORD:-admin12345}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_INIT_ORG:-pulsesynapse}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_INIT_BUCKET:-monitoring_data}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+    volumes:
+      - influx-data:/var/lib/influxdb2
+      - influx-config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  user-auth-service:
+    build:
+      context: .
+      dockerfile: user-auth-service/Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8080
+    depends_on:
+      - rabbitmq
+    ports:
+      - "8080:8080"  # expose if you need public access
+
+  target-management-service:
+    build:
+      context: .
+      dockerfile: target-management-service/Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8081
+    depends_on:
+      - user-auth-service
+    ports:
+      - "8081:8081"
+
+  scheduler-service:
+    build:
+      context: .
+      dockerfile: scheduler-service/Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8082
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      SPRING_GRPC_CLIENT_CHANNELS_TARGET-MANAGEMENT-SERVICE_ADDRESS: static://target-management-service:8081
+      SPRING_GRPC_CLIENT_CHANNELS_TARGET-MANAGEMENT-SERVICE_NEGOTIATIONTYPE: PLAINTEXT
+      POLLING_SCHEDULE_RATE_MS: ${POLLING_SCHEDULE_RATE_MS:-60000}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      target-management-service:
+        condition: service_started
+    ports:
+      - "8082:8082"
+
+  polling-worker-service:
+    build:
+      context: .
+      dockerfile: polling-worker-service/Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8083
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+
+  data-ingestion-service:
+    build:
+      context: .
+      dockerfile: data-ingestion-service/Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8084
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_INIT_ORG:-pulsesynapse}
+      INFLUXDB_BUCKET: ${INFLUXDB_INIT_BUCKET:-monitoring_data}
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+
+  analytics-reporting-service:
+    build:
+      context: .
+      dockerfile: analytics-reporting-service/Dockerfile
+    environment:
+      <<: *common-env
+      SERVER_PORT: 8085
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_INIT_ORG:-pulsesynapse}
+      INFLUXDB_BUCKET: ${INFLUXDB_INIT_BUCKET:-monitoring_data}
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+
+volumes:
+  influx-data:
+  influx-config:
